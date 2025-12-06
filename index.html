@@ -299,30 +299,43 @@ let currentModalDay=0;
 
 // Settings
 let settings={days:30,export:'txt',autoSave:true};
-function loadSettings(){const s=getStorage('settings',settings);settings={...settings,...s};applySettings();}
+function loadSettings(){const s=getStorage('settings',settings);settings={...settings,...s};}
 function saveSettings(){setStorage('settings',settings);}
 function applySettings(){
-  document.getElementById('settingDays').value=settings.days;
-  document.getElementById('settingExport').value=settings.export;
-  document.getElementById('settingAutoSave').value=settings.autoSave.toString();
+  const daysEl=document.getElementById('settingDays');
+  const exportEl=document.getElementById('settingExport');
+  const autoSaveEl=document.getElementById('settingAutoSave');
+  if(daysEl)daysEl.value=settings.days;
+  if(exportEl)exportEl.value=settings.export;
+  if(autoSaveEl)autoSaveEl.value=settings.autoSave.toString();
 }
-loadSettings();
 
 // Tab switching
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById(tab.dataset.tab).classList.add('active');
-    if(tab.dataset.tab==='favorites')renderFavorites();
-    if(tab.dataset.tab==='history')renderHistory();
-    if(tab.dataset.tab==='stats')updateStats();
-  };
-});
+function initTabs(){
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.onclick=()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+      if(tab.dataset.tab==='favorites')renderFavorites();
+      if(tab.dataset.tab==='history')renderHistory();
+      if(tab.dataset.tab==='stats')updateStats();
+    };
+  });
+}
 
-// Fade-in on load
-window.addEventListener('load',()=>{appContainer.style.opacity='1';updateFavBadge();renderFavorites();renderHistory();updateStats();});
+// Initialize on load
+window.addEventListener('load',()=>{
+  loadSettings();
+  applySettings();
+  initTabs();
+  appContainer.style.opacity='1';
+  updateFavBadge();
+  renderFavorites();
+  renderHistory();
+  updateStats();
+});
 
 // Modal
 function fadeOutModal(){
