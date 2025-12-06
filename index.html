@@ -10,15 +10,25 @@
   --accent1:#0b74d1;
   --accent2:#a11ad8;
   --accent3:#ff5a7a;
+  --bg-dark:#0a0e27;
+  --bg-card:rgba(255,255,255,0.08);
+  --text-primary:#ffffff;
+  --text-secondary:rgba(255,255,255,0.85);
+  --shadow-sm:0 2px 8px rgba(0,0,0,0.1);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.2);
+  --shadow-lg:0 8px 32px rgba(0,0,0,0.3);
+  --shadow-xl:0 16px 48px rgba(0,0,0,0.4);
 }
 body{
   margin:0;
-  font-family:"SF Pro Display","Inter",sans-serif;
+  font-family:"SF Pro Display","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   background:linear-gradient(135deg,#0b74d1,#a11ad8,#ff5a7a);
   background-size:300% 300%;
   animation:bgShift 12s linear infinite;
-  color:#fff;
+  color:var(--text-primary);
   overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 @keyframes bgShift{
   0%{background-position:0% 50%;}
@@ -27,41 +37,53 @@ body{
 }
 #appContainer{opacity:0;transition:opacity 0.6s;}
 header{
-  display:flex;align-items:center;justify-content:center;gap:12px;
-  padding:22px 18px;
-  backdrop-filter:blur(6px);
-  background:rgba(0,0,0,0.2);
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  padding:24px 20px;
+  backdrop-filter:blur(20px) saturate(180%);
+  background:rgba(10,14,39,0.75);
+  border-bottom:1px solid rgba(255,255,255,0.1);
   position:sticky;top:0;z-index:10;
+  box-shadow:var(--shadow-md);
 }
 .logo{
-  width:52px;height:52px;border-radius:12px;background:#fff;color:#0b74d1;
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;
+  width:56px;height:56px;border-radius:14px;
+  background:linear-gradient(135deg,#0b74d1,#a11ad8);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:20px;
   cursor:pointer;
+  box-shadow:var(--shadow-md);
+  transition:all 0.3s ease;
 }
-header h1{margin:0;font-size:20px;color:#051225;}
-.tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:16px 20px;backdrop-filter:blur(6px);background:rgba(0,0,0,0.15);position:sticky;top:96px;z-index:9;}
-.tab{background:rgba(255,255,255,0.1);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s;font-size:14px;position:relative;}
-.tab:hover{background:rgba(255,255,255,0.18);transform:translateY(-2px);}
-.tab.active{background:rgba(255,255,255,0.25);box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.logo:hover{transform:scale(1.05) rotate(5deg);box-shadow:var(--shadow-lg);}
+header h1{margin:0;font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-0.5px;}
+.tabs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:20px;backdrop-filter:blur(20px) saturate(180%);background:rgba(10,14,39,0.6);border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:104px;z-index:9;box-shadow:var(--shadow-sm);}
+.tab{background:rgba(255,255,255,0.08);color:var(--text-secondary);border:none;padding:12px 20px;border-radius:10px;font-weight:600;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);font-size:14px;position:relative;border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(10px);}
+.tab:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px);box-shadow:var(--shadow-md);color:var(--text-primary);}
+.tab.active{background:linear-gradient(135deg,rgba(11,116,209,0.3),rgba(161,26,216,0.3));color:var(--text-primary);box-shadow:var(--shadow-md);border-color:rgba(255,255,255,0.2);}
 .tab-badge{position:absolute;top:-6px;right:-6px;background:var(--accent3);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
 .tab-content{display:none;animation:fadeIn 0.3s ease;}
 .tab-content.active{display:block;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 .container{max-width:1200px;margin:26px auto;padding:0 20px 80px;}
 .controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
-input[type=text],input[type=number],select{min-width:220px;max-width:420px;padding:12px 14px;border-radius:10px;border:none;background:rgba(255,255,255,0.06);color:#fff;outline:none;}
-input::placeholder{color: rgba(255,255,255,0.6);}
-select{color:#fff;cursor:pointer;}
+input[type=text],input[type=number],select{min-width:220px;max-width:420px;padding:14px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.08);color:var(--text-primary);outline:none;font-size:14px;transition:all 0.3s;backdrop-filter:blur(10px);}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:rgba(11,116,209,0.5);background:rgba(255,255,255,0.12);box-shadow:0 0 0 3px rgba(11,116,209,0.1);}
+input::placeholder{color:rgba(255,255,255,0.5);}
+select{color:var(--text-primary);cursor:pointer;}
 select option{background:#1a1a2e;color:#fff;}
-.btn{background:rgba(255,255,255,0.12);color:#fff;border:none;padding:11px 14px;border-radius:10px;font-weight:700;cursor:pointer;transition:transform .15s ease, background .15s;}
-.btn:hover{transform:translateY(-3px);background:rgba(255,255,255,0.18);}
+.btn{background:linear-gradient(135deg,rgba(11,116,209,0.8),rgba(161,26,216,0.8));color:#fff;border:none;padding:14px 24px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--shadow-md);letter-spacing:0.3px;}
+.btn:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);background:linear-gradient(135deg,rgba(11,116,209,1),rgba(161,26,216,1));}
+.btn:active{transform:translateY(-1px);}
 .btn-small{padding:6px 10px;font-size:12px;}
 .btn-fav{position:absolute;right:10px;top:10px;background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;}
 .btn-fav:hover{background:rgba(255,255,255,0.3);transform:scale(1.1);}
 .btn-fav.favorited{background:var(--accent3);color:#fff;}
 .calendar{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
-.card{border-radius:14px;padding:14px;min-height:130px;position:relative;color:#fff;box-shadow:0 8px 30px rgba(2,8,23,0.28);transition:transform .18s ease,box-shadow .18s ease;overflow:hidden;border:1px solid rgba(255,255,255,0.06);}
-.card:hover{transform:translateY(-6px);box-shadow:0 18px 38px rgba(2,8,23,0.36);}
+.card{border-radius:16px;padding:18px;min-height:140px;position:relative;color:var(--text-primary);box-shadow:var(--shadow-lg);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);overflow:hidden;border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(20px);background:linear-gradient(135deg,rgba(11,116,209,0.15),rgba(161,26,216,0.15));}
+.card:hover{transform:translateY(-8px) scale(1.02);box-shadow:var(--shadow-xl);border-color:rgba(255,255,255,0.2);}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0b74d1,#a11ad8,#ff5a7a);opacity:0;transition:opacity 0.3s;}
+.card:hover::before{opacity:1;}
 .num{font-weight:800;margin-bottom:8px;}
 .short{font-size:14px;line-height:1.4;color:rgba(255,255,255,0.95);}
 .tooltip{position:absolute;left:12px;top:10px;background:rgba(0,0,0,0.35);padding:6px 8px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .18s;}
@@ -290,6 +312,18 @@ const gameSettings=['a floating sky city','a haunted carnival','a neon cyber-met
 const mechanics=['time-loop progression','deck-building choices','squad management','gravity-based puzzles','musical combat','resource crafting','turn-based tactics','stealth infiltration','dialogue branching','combat rhythm sync','shape-shifting abilities','ecosystem simulation','roguelike dungeons','card fusion system','emotion-based AI companions','multi-timeline switching','reputation diplomacy','building physics simulation','team synergy combos','shadow possession'];
 const storyHooks=['you awaken with your memories rewritten','your twin controls your shadow self','a forgotten song reshapes reality','a virus spreads through dreams','you lead refugees across broken dimensions','your choices rewrite past events','a rival mirrors your every move','you must uncover who programmed your fate','a city runs on bottled emotions','you hunt your future self','time fractures each dawn','your world ends every midnight','an AI writes new laws daily','the moon vanishes every night','you rebuild a civilization from echoes','magic runs through sound frequencies'];
 
+// Expanded keyword system - generates millions of combinations
+const genreBase=['RPG','Platformer','Horror','Roguelike','Shooter','Simulation','Strategy','Mystery','Rhythm','Adventure','Puzzle','Metroidvania','Action','Stealth','Card','Sandbox','City Builder','VR','AR','Narrative','Survival','Fantasy','Sci-Fi','Historical','Cyberpunk','Noir','Western','Post-Apocalyptic','Space','Comedy','Slice of Life','Tactical','Racing','Fighting','Sports','Educational','Idle','Incremental','Tower Defense','MOBA','Battle Royale','MMO','RTS','Turn-Based','Real-Time','Co-op','Competitive','Casual','Hardcore','Indie','AAA','Retro','Modern','Futuristic','Medieval','Steampunk','Dieselpunk','Biopunk','Solarpunk','Atompunk','Clockpunk','Dungeon Crawler','Souls-like','Roguelite','Bullet Hell','Twin-Stick','Top-Down','Isometric','Side-Scrolling','First-Person','Third-Person','Open World','Linear','Procedural','Hand-Crafted','Narrative-Driven','Gameplay-Focused','Story-Rich','Character-Driven','World-Building','Exploration','Combat','Puzzle-Solving','Crafting','Building','Trading','Farming','Cooking','Fishing','Hunting','Gathering','Mining','Crafting','Alchemy','Enchanting','Taming','Breeding','Farming','Trading','Diplomacy','Warfare','Exploration','Discovery','Survival','Crafting','Building','Social','Multiplayer','Single-Player','Cooperative','Competitive','Asymmetric','Symmetric','Team-Based','Free-For-All','Battle','Arena','Campaign','Story Mode','Endless Mode','Challenge Mode','Time Attack','Speedrun','Completionist','Collectathon','Metroidvania','Souls-like','Roguelike','Roguelite','Procedural','Hand-Crafted','Narrative','Gameplay','Combat','Puzzle','Exploration','Crafting','Building','Trading','Social','Multiplayer','Single-Player'];
+const settingBase=['floating sky city','haunted carnival','neon cyber-metro','quiet mountain village','underwater research base','desert planet outpost','post-war bunker','futuristic Tokyo district','cursed forest','digital dream world','abandoned theme park','medieval academy','crumbling megacity','pirate skyship','moon colony','misty swamp town','massive AI core','gothic cathedral','snowy tundra settlement','sunken city of glass','orbital station','dimensional rift','time-lost temple','quantum realm','neural network','data fortress','memory palace','dreamscape','nightmare dimension','void between worlds','celestial observatory','ancient library','forbidden archive','crystal cavern','lava forge','ice citadel','storm tower','lightning spire','thunder peak','wind valley','earth core','fire mountain','water temple','air sanctuary','spirit realm','shadow dimension','light domain','dark abyss','bright void','colorless void','rainbow bridge','prism palace','mirror maze','echo chamber','silence cathedral','sound garden','music hall','rhythm temple','harmony sanctuary','discord fortress','chaos realm','order citadel','balance tower','imbalance abyss','stability core','instability zone','reality anchor','unreality void','truth beacon','lie labyrinth','honor hall','dishonor pit','virtue temple','vice den','purity shrine','corruption nest','sanctity altar','profanity chamber','divinity throne','mortality grave','immortality fountain','eternity gate','temporality clock','spatiality portal','dimensionality rift','parallelity mirror','alternativity switch','mirrority reflection','twistity distortion','straightity path','curvity arc','linearity line','circularity circle','spirality spiral','fractality fractal','chaoticity chaos','orderity order','randomity random','determinity determination','freedomity freedom','boundity bound','unboundity unbound','limitedity limited','unlimitedity unlimited','finiteity finite','infiniteity infinite','reality real','virtuality virtual','digitality digital','analogity analog','organicity organic','syntheticity synthetic','naturality natural','artificiality artificial','livingity living','deadity dead','undeadity undead','immortality immortal','mortality mortal','temporality temporal','eternality eternal','briefity brief','lastingity lasting','momentarity momentary','permanity permanent','tempority temporary','fixedity fixed','fluidity fluid','solidity solid','liquidity liquid','gaseity gaseous','plasmaity plasma','energyity energy','matterity matter','antimatterity antimatter'];
+const settingPrefixes=['a','an','the','your','this','that','an ancient','a forgotten','a lost','a hidden','a secret','a mysterious','a legendary','an abandoned','a ruined','a thriving','a bustling','a quiet','a peaceful','a war-torn','a post-apocalyptic','a pre-apocalyptic','a futuristic','a retro-futuristic','a cyberpunk','a steampunk','a dieselpunk','a biopunk','a solarpunk','a medieval','a modern','a contemporary','an alternate','a parallel','a mirror','a twisted','a corrupted','a purified','a transformed','a mutated','a evolved','a devolved','a hybrid','a fusion','a combination','a blend','a mix','a synthesis','a quantum','a temporal','a spatial','a dimensional','a parallel','an alternate','a mirror','a twisted','a corrupted','a purified','a transformed','a mutated','an evolved','a devolved','a hybrid','a fusion','a combination','a blend','a mix','a synthesis','a quantum','a temporal','a spatial','a dimensional','a parallel','an alternate','a mirror','a twisted','a corrupted','a purified','a transformed','a mutated','an evolved','a devolved','a hybrid','a fusion','a combination','a blend','a mix','a synthesis'];
+const mechanicBase=['time-loop progression','deck-building choices','squad management','gravity-based puzzles','musical combat','resource crafting','turn-based tactics','stealth infiltration','dialogue branching','combat rhythm sync','shape-shifting abilities','ecosystem simulation','roguelike dungeons','card fusion system','emotion-based AI companions','multi-timeline switching','reputation diplomacy','building physics simulation','team synergy combos','shadow possession'];
+const hookBase=['you awaken with your memories rewritten','your twin controls your shadow self','a forgotten song reshapes reality','a virus spreads through dreams','you lead refugees across broken dimensions','your choices rewrite past events','a rival mirrors your every move','you must uncover who programmed your fate','a city runs on bottled emotions','you hunt your future self','time fractures each dawn','your world ends every midnight','an AI writes new laws daily','the moon vanishes every night','you rebuild a civilization from echoes','magic runs through sound frequencies'];
+
+function getExpandedGenre(){return rand(genreBase);}
+function getExpandedSetting(){return rand(settingPrefixes)+' '+rand(settingBase);}
+function getExpandedMechanic(){return rand(mechanicBase);}
+function getExpandedHook(){return rand(hookBase);}
+
 // Storage helpers
 function getStorage(key,defaultVal=[]){const v=localStorage.getItem(key);return v?JSON.parse(v):defaultVal;}
 function setStorage(key,val){localStorage.setItem(key,JSON.stringify(val));}
@@ -453,10 +487,10 @@ async function generateAIIdea(title,desc){
 }
 
 function buildIdea(title, desc){
-  const g=[rand(genres),rand(genres),rand(genres)].filter((v,i,a)=>a.indexOf(v)===i).slice(0,rand([1,2,3]));
-  const s=rand(gameSettings); const m=rand(mechanics); const h=rand(storyHooks);
-  const adjectives=["Crimson","Neon","Shadow","Silent","Echo","Phantom","Eternal","Crystal","Solar","Iron","Velvet","Dream","Infinite","Midnight","Azure","Golden","Arcane","Forgotten","Digital","Frozen","Titan","Spectral","Burning","Emerald"];
-  const nouns=["Odyssey","Protocol","Frontier","Legacy","Descent","Haven","Circuit","Genesis","Chronicle","Abyss","Empire","Horizon","Velocity","Tide","Sanctum","Hollow","Labyrinth","Catalyst","Pulse","Voyage","Realm","Shift","Beacon","Domain"];
+  const g=[getExpandedGenre(),getExpandedGenre(),getExpandedGenre()].filter((v,i,a)=>a.indexOf(v)===i).slice(0,rand([1,2,3]));
+  const s=getExpandedSetting(); const m=getExpandedMechanic(); const h=getExpandedHook();
+  const adjectives=["Crimson","Neon","Shadow","Silent","Echo","Phantom","Eternal","Crystal","Solar","Iron","Velvet","Dream","Infinite","Midnight","Azure","Golden","Arcane","Forgotten","Digital","Frozen","Titan","Spectral","Burning","Emerald","Void","Celestial","Primal","Ancient","Mystic","Ethereal","Cosmic","Quantum","Neon","Cyber","Bio","Nano","Hyper","Ultra","Mega","Super","Prime","Alpha","Omega","Zero","Null","Void","Dark","Light","Bright","Dim","Faded","Vibrant","Muted","Bold","Subtle","Raw","Refined","Pure","Corrupt","Sacred","Profane","Divine","Demonic","Heavenly","Infernal","Eternal","Temporal","Spatial","Dimensional","Parallel","Alternate","Mirror","Twisted","Straight","Curved","Linear","Circular","Spiral","Fractal","Chaotic","Ordered","Random","Determined","Free","Bound","Unbound","Limited","Unlimited","Finite","Infinite","Real","Virtual","Digital","Analog","Organic","Synthetic","Natural","Artificial","Living","Dead","Undead","Immortal","Mortal","Temporal","Eternal","Brief","Lasting","Momentary","Permanent","Temporary","Fixed","Fluid","Solid","Liquid","Gaseous","Plasma","Energy","Matter","Antimatter","Dark","Light","Bright","Dim","Luminous","Opaque","Transparent","Translucent","Visible","Invisible","Tangible","Intangible","Physical","Metaphysical","Material","Immaterial","Corporeal","Incorporeal","Solid","Hollow","Dense","Sparse","Thick","Thin","Wide","Narrow","Broad","Tight","Loose","Taut","Slack","Rigid","Flexible","Stiff","Supple","Hard","Soft","Firm","Gentle","Rough","Smooth","Coarse","Fine","Crude","Refined","Raw","Processed","Natural","Artificial","Organic","Inorganic","Living","Nonliving","Animate","Inanimate","Sentient","Insentient","Conscious","Unconscious","Aware","Unaware","Awake","Asleep","Alive","Dead","Undead","Immortal","Mortal","Eternal","Temporal","Infinite","Finite","Unlimited","Limited","Boundless","Bounded","Free","Restricted","Open","Closed","Accessible","Inaccessible","Available","Unavailable","Present","Absent","Here","There","Near","Far","Close","Distant","Local","Remote","Proximate","Distant","Adjacent","Separate","Connected","Disconnected","Linked","Unlinked","Joined","Separated","United","Divided","Whole","Partial","Complete","Incomplete","Finished","Unfinished","Done","Undone","Accomplished","Unaccomplished","Achieved","Unachieved","Succeeded","Failed","Won","Lost","Victorious","Defeated","Triumphant","Vanquished","Conquered","Unconquered","Dominant","Submissive","Powerful","Powerless","Strong","Weak","Mighty","Feeble","Robust","Fragile","Sturdy","Delicate","Tough","Tender","Hardy","Sensitive","Resilient","Vulnerable","Invulnerable","Indestructible","Destructible","Durable","Perishable","Lasting","Ephemeral","Permanent","Temporary","Enduring","Fleeting","Stable","Unstable","Steady","Unsteady","Firm","Unfirm","Solid","Unsolid","Secure","Insecure","Safe","Unsafe","Protected","Unprotected","Defended","Undefended","Guarded","Unguarded","Shielded","Unshielded","Armored","Unarmored","Fortified","Unfortified","Reinforced","Unreinforced","Strengthened","Weakened","Enhanced","Diminished","Improved","Deteriorated","Upgraded","Downgraded","Elevated","Lowered","Raised","Dropped","Lifted","Fallen","Ascended","Descended","Risen","Sunk","Floated","Sank","Soared","Plummeted","Climbed","Fell","Jumped","Landed","Leaped","Bounded","Sprung","Sprang","Bounced","Rebounded","Reflected","Refracted","Absorbed","Emitted","Radiated","Conducted","Insulated","Isolated","Connected","Disconnected","Linked","Unlinked","Joined","Separated","United","Divided","Merged","Split","Combined","Separated","Fused","Fissioned","Integrated","Disintegrated","Assembled","Disassembled","Constructed","Destroyed","Built","Demolished","Created","Annihilated","Formed","Deformed","Shaped","Misshapen","Molded","Unmolded","Carved","Uncarved","Sculpted","Unsculpted","Crafted","Uncrafted","Made","Unmade","Produced","Unproduced","Generated","Ungenerated","Manufactured","Unmanufactured","Fabricated","Unfabricated","Constructed","Deconstructed","Built","Unbuilt","Erected","Demolished","Raised","Razed","Established","Disestablished","Founded","Dissolved","Instituted","Abolished","Created","Destroyed","Formed","Deformed","Shaped","Misshapen","Molded","Unmolded","Carved","Uncarved","Sculpted","Unsculpted","Crafted","Uncrafted","Made","Unmade","Produced","Unproduced","Generated","Ungenerated","Manufactured","Unmanufactured","Fabricated","Unfabricated"];
+  const nouns=["Odyssey","Protocol","Frontier","Legacy","Descent","Haven","Circuit","Genesis","Chronicle","Abyss","Empire","Horizon","Velocity","Tide","Sanctum","Hollow","Labyrinth","Catalyst","Pulse","Voyage","Realm","Shift","Beacon","Domain","Nexus","Vortex","Matrix","Grid","Network","System","Framework","Structure","Architecture","Design","Pattern","Template","Blueprint","Schema","Model","Prototype","Archetype","Paradigm","Exemplar","Standard","Benchmark","Criterion","Measure","Metric","Gauge","Scale","Range","Scope","Extent","Reach","Span","Width","Breadth","Depth","Height","Length","Distance","Proximity","Vicinity","Neighborhood","Region","Area","Zone","Territory","Domain","Realm","Kingdom","Empire","Nation","Country","State","Province","County","District","Precinct","Ward","Quarter","Section","Segment","Part","Portion","Fraction","Percentage","Ratio","Proportion","Share","Allotment","Quota","Allowance","Ration","Portion","Share","Part","Piece","Fragment","Segment","Section","Division","Subdivision","Category","Class","Type","Kind","Sort","Variety","Species","Genus","Family","Order","Phylum","Kingdom","Domain","Realm","Sphere","Orb","Globe","Ball","Circle","Ring","Loop","Coil","Spiral","Helix","Curve","Arc","Bend","Turn","Twist","Rotation","Revolution","Orbit","Path","Trajectory","Course","Route","Way","Road","Pathway","Track","Trail","Lane","Street","Avenue","Boulevard","Highway","Freeway","Expressway","Turnpike","Tollway","Causeway","Bridge","Overpass","Underpass","Tunnel","Subway","Metro","Railway","Railroad","Train","Locomotive","Engine","Motor","Machine","Device","Apparatus","Instrument","Tool","Implement","Utensil","Gadget","Contraption","Mechanism","Contrivance","Invention","Innovation","Creation","Product","Artifact","Object","Item","Thing","Entity","Being","Creature","Organism","Lifeform","Species","Specimen","Sample","Example","Instance","Case","Occurrence","Event","Incident","Episode","Scene","Act","Chapter","Section","Part","Segment","Division","Subdivision","Category","Class","Type","Kind","Sort","Variety","Species","Genus","Family","Order","Phylum","Kingdom","Domain","Realm","Sphere","Orb","Globe","Ball","Circle","Ring","Loop","Coil","Spiral","Helix","Curve","Arc","Bend","Turn","Twist","Rotation","Revolution","Orbit","Path","Trajectory","Course","Route","Way","Road","Pathway","Track","Trail","Lane","Street","Avenue","Boulevard","Highway","Freeway","Expressway","Turnpike","Tollway","Causeway","Bridge","Overpass","Underpass","Tunnel","Subway","Metro","Railway","Railroad","Train","Locomotive","Engine","Motor","Machine","Device","Apparatus","Instrument","Tool","Implement","Utensil","Gadget","Contraption","Mechanism","Contrivance","Invention","Innovation","Creation","Product","Artifact","Object","Item","Thing","Entity","Being","Creature","Organism","Lifeform","Species","Specimen","Sample","Example","Instance","Case","Occurrence","Event","Incident","Episode","Scene","Act","Chapter","Section","Part","Segment","Division","Subdivision","Category","Class","Type","Kind","Sort","Variety"];
   function smartTitleFrom(descText){
     const d=(descText||"").toLowerCase();
     if(d.includes("fun")||d.includes("happy"))return rand(["Joy Horizon","Color Quest","Happy Fields"]);
