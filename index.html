@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>A Game a Day — Ultra AI Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{
   --accent1:#0b74d1;
@@ -133,6 +134,7 @@ select option{background:#1a1a2e;color:#fff;}
 <div class="tabs">
   <button class="tab active" data-tab="generator">🎮 Generator</button>
   <button class="tab" data-tab="quick">⚡ Quick Idea</button>
+  <button class="tab" data-tab="baseball">⚾ Baseball</button>
   <button class="tab" data-tab="favorites">⭐ Favorites<span class="tab-badge" id="favBadge" style="display:none;">0</span></button>
   <button class="tab" data-tab="history">📜 History</button>
   <button class="tab" data-tab="stats">📊 Stats</button>
@@ -176,6 +178,40 @@ select option{background:#1a1a2e;color:#fff;}
           <button class="btn btn-small" id="quickShareBtn">🔗 Share</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Baseball Game Tab -->
+<div class="tab-content" id="baseball">
+  <div class="container" style="max-width:1400px;">
+    <div style="background:linear-gradient(135deg, #c41e3a, #0d4f8c); border-radius:16px; padding:20px; margin-bottom:20px; box-shadow:var(--shadow-lg);">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
+        <div style="text-align:center; background:rgba(0,0,0,0.3); border-radius:12px; padding:16px;">
+          <div style="font-size:14px; opacity:0.9; margin-bottom:8px;">VISITOR</div>
+          <div style="font-size:32px; font-weight:800;" id="visitorName">YANKEES</div>
+          <div style="font-size:48px; font-weight:800; margin-top:8px;" id="visitorScore">0</div>
+        </div>
+        <div style="text-align:center; background:rgba(0,0,0,0.3); border-radius:12px; padding:16px;">
+          <div style="font-size:14px; opacity:0.9; margin-bottom:8px;">INNING</div>
+          <div style="font-size:32px; font-weight:800;" id="inningDisplay">TOP 1</div>
+          <div style="font-size:24px; margin-top:8px;" id="outsDisplay">0 OUTS</div>
+        </div>
+        <div style="text-align:center; background:rgba(0,0,0,0.3); border-radius:12px; padding:16px;">
+          <div style="font-size:14px; opacity:0.9; margin-bottom:8px;">HOME</div>
+          <div style="font-size:32px; font-weight:800; color:#c41e3a;" id="homeName">RED SOX</div>
+          <div style="font-size:48px; font-weight:800; margin-top:8px; color:#c41e3a;" id="homeScore">0</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn" id="pitchBtn" style="background:linear-gradient(135deg, #c41e3a, #0d4f8c);">Pitch</button>
+        <button class="btn" id="resetGameBtn" style="background:rgba(255,255,255,0.2);">Reset Game</button>
+      </div>
+    </div>
+    <div id="baseballCanvas" style="width:100%; height:600px; background:#0a5d0a; border-radius:16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xl);"></div>
+    <div style="margin-top:20px; background:rgba(255,255,255,0.08); border-radius:12px; padding:16px; backdrop-filter:blur(10px);">
+      <div style="font-size:14px; opacity:0.9; margin-bottom:12px;">GAME LOG</div>
+      <div id="gameLog" style="max-height:150px; overflow-y:auto; font-size:13px; line-height:1.6;"></div>
     </div>
   </div>
 </div>
@@ -372,6 +408,15 @@ function initTabs(){
       if(tab.dataset.tab==='favorites')renderFavorites();
       if(tab.dataset.tab==='history')renderHistory();
       if(tab.dataset.tab==='stats')updateStats();
+      if(tab.dataset.tab==='baseball'){
+        setTimeout(()=>{
+          const canvas=document.getElementById('baseballCanvas');
+          if(canvas&&scene===null){
+            initBaseballGame();
+            updateScoreboard();
+          }
+        },100);
+      }
     };
   });
 }
@@ -789,6 +834,373 @@ document.getElementById('clearHistoryBtn').onclick=()=>{
 };
 
 document.getElementById('generateBtn').onclick=generateAndRender;
+
+// Baseball Game
+let scene = null, camera = null, renderer = null, field = null, pitcher = null, batter = null, ball = null;
+let gameState = {
+  inning: 1,
+  topInning: true,
+  outs: 0,
+  visitorScore: 0,
+  homeScore: 0,
+  bases: [false, false, false],
+  ballPosition: null,
+  ballInFlight: false
+};
+
+function initBaseballGame() {
+  const canvas = document.getElementById('baseballCanvas');
+  if (!canvas) return;
+
+  // Scene setup
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a5d0a); // Green grass color
+  scene.fog = new THREE.Fog(0x0a5d0a, 200, 500);
+
+  // Camera setup - classic NESN broadcast view (behind home plate)
+  camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+  camera.position.set(0, 25, 45); // Behind and above home plate
+  camera.lookAt(0, 0, -50); // Look toward center field
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  renderer.shadowMap.enabled = true;
+  canvas.appendChild(renderer.domElement);
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(50, 100, 50);
+  directionalLight.castShadow = true;
+  scene.add(directionalLight);
+
+  // Create field
+  createField();
+  
+  // Create players
+  createPlayers();
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  });
+
+  // Initial render
+  animate();
+}
+
+function createField() {
+  // Grass
+  const grass = new THREE.PlaneGeometry(200, 200);
+  const grassMat = new THREE.MeshLambertMaterial({ color: 0x0a5d0a });
+  const grassMesh = new THREE.Mesh(grass, grassMat);
+  grassMesh.rotation.x = -Math.PI / 2;
+  grassMesh.position.y = 0;
+  grassMesh.receiveShadow = true;
+  scene.add(grassMesh);
+
+  // Infield dirt
+  const dirt = new THREE.CircleGeometry(35, 32);
+  const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+  const dirtMesh = new THREE.Mesh(dirt, dirtMat);
+  dirtMesh.rotation.x = -Math.PI / 2;
+  dirtMesh.position.y = 0.01;
+  scene.add(dirtMesh);
+
+  // Bases
+  const baseGeometry = new THREE.BoxGeometry(3, 0.2, 3);
+  const baseMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  
+  // Home plate
+  const homePlate = new THREE.Mesh(baseGeometry, baseMat);
+  homePlate.position.set(0, 0.1, 0);
+  scene.add(homePlate);
+  
+  // First base
+  const firstBase = new THREE.Mesh(baseGeometry, baseMat);
+  firstBase.position.set(27.4, 0.1, 27.4);
+  scene.add(firstBase);
+  
+  // Second base
+  const secondBase = new THREE.Mesh(baseGeometry, baseMat);
+  secondBase.position.set(0, 0.1, 38.8);
+  scene.add(secondBase);
+  
+  // Third base
+  const thirdBase = new THREE.Mesh(baseGeometry, baseMat);
+  thirdBase.position.set(-27.4, 0.1, 27.4);
+  scene.add(thirdBase);
+
+  // Pitcher's mound
+  const mound = new THREE.CylinderGeometry(3, 3, 0.25, 32);
+  const moundMat = new THREE.MeshLambertMaterial({ color: 0x8b7355 });
+  const moundMesh = new THREE.Mesh(mound, moundMat);
+  moundMesh.position.set(0, 0.125, -18.4);
+  scene.add(moundMesh);
+
+  // Base paths (lines)
+  const pathMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const pathWidth = 0.1;
+  const pathHeight = 0.05;
+
+  // First base line
+  const path1 = new THREE.BoxGeometry(40, pathHeight, pathWidth);
+  const path1Mesh = new THREE.Mesh(path1, pathMat);
+  path1Mesh.position.set(13.7, 0.025, 13.7);
+  path1Mesh.rotation.y = Math.PI / 4;
+  scene.add(path1Mesh);
+
+  // Second base line
+  const path2 = new THREE.BoxGeometry(40, pathHeight, pathWidth);
+  const path2Mesh = new THREE.Mesh(path2, pathMat);
+  path2Mesh.position.set(0, 0.025, 33);
+  path2Mesh.rotation.y = Math.PI / 2;
+  scene.add(path2Mesh);
+
+  // Third base line
+  const path3 = new THREE.BoxGeometry(40, pathHeight, pathWidth);
+  const path3Mesh = new THREE.Mesh(path3, pathMat);
+  path3Mesh.position.set(-13.7, 0.025, 13.7);
+  path3Mesh.rotation.y = -Math.PI / 4;
+  scene.add(path3Mesh);
+
+  // Home to first
+  const path4 = new THREE.BoxGeometry(40, pathHeight, pathWidth);
+  const path4Mesh = new THREE.Mesh(path4, pathMat);
+  path4Mesh.position.set(13.7, 0.025, 13.7);
+  path4Mesh.rotation.y = Math.PI / 4;
+  scene.add(path4Mesh);
+
+  // Outfield wall (simple representation)
+  const wallMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const wall = new THREE.BoxGeometry(120, 8, 2);
+  const wallMesh = new THREE.Mesh(wall, wallMat);
+  wallMesh.position.set(0, 4, -90);
+  scene.add(wallMesh);
+}
+
+function createPlayers() {
+  // Pitcher
+  const pitcherGroup = new THREE.Group();
+  const pitcherBody = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.8, 0.8, 2, 8),
+    new THREE.MeshLambertMaterial({ color: 0x0d4f8c })
+  );
+  pitcherBody.position.y = 1;
+  pitcherGroup.add(pitcherBody);
+  
+  const pitcherHead = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 16, 16),
+    new THREE.MeshLambertMaterial({ color: 0xffdbac })
+  );
+  pitcherHead.position.y = 2.5;
+  pitcherGroup.add(pitcherHead);
+  
+  pitcherGroup.position.set(0, 0, -18.4);
+  pitcherGroup.castShadow = true;
+  scene.add(pitcherGroup);
+  pitcher = pitcherGroup;
+
+  // Batter
+  const batterGroup = new THREE.Group();
+  const batterBody = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.8, 0.8, 2, 8),
+    new THREE.MeshLambertMaterial({ color: 0xc41e3a })
+  );
+  batterBody.position.y = 1;
+  batterGroup.add(batterBody);
+  
+  const batterHead = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 16, 16),
+    new THREE.MeshLambertMaterial({ color: 0xffdbac })
+  );
+  batterHead.position.y = 2.5;
+  batterGroup.add(batterHead);
+  
+  batterGroup.position.set(-1, 0, 2);
+  batterGroup.rotation.y = Math.PI;
+  batterGroup.castShadow = true;
+  scene.add(batterGroup);
+  batter = batterGroup;
+
+  // Ball
+  const ballGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+  const ballMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  ball = new THREE.Mesh(ballGeometry, ballMat);
+  ball.position.set(0, 1.5, -18.4);
+  ball.visible = false;
+  scene.add(ball);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+function updateScoreboard() {
+  document.getElementById('inningDisplay').textContent = 
+    (gameState.topInning ? 'TOP' : 'BOT') + ' ' + gameState.inning;
+  document.getElementById('outsDisplay').textContent = gameState.outs + ' OUTS';
+  document.getElementById('visitorScore').textContent = gameState.visitorScore;
+  document.getElementById('homeScore').textContent = gameState.homeScore;
+}
+
+function addGameLog(message) {
+  const log = document.getElementById('gameLog');
+  const entry = document.createElement('div');
+  entry.style.marginBottom = '8px';
+  entry.style.opacity = '0.9';
+  entry.textContent = message;
+  log.insertBefore(entry, log.firstChild);
+  if (log.children.length > 10) {
+    log.removeChild(log.lastChild);
+  }
+}
+
+function pitchBall() {
+  if (gameState.ballInFlight) return;
+  
+  gameState.ballInFlight = true;
+  ball.visible = true;
+  ball.position.set(0, 1.5, -18.4);
+  
+  const targetZ = Math.random() * 30 + 5; // Random pitch location
+  const targetX = (Math.random() - 0.5) * 4;
+  const height = Math.random() * 3 + 1;
+  
+  let progress = 0;
+  const pitchInterval = setInterval(() => {
+    progress += 0.02;
+    if (progress >= 1) {
+      progress = 1;
+      clearInterval(pitchInterval);
+      
+      // Determine outcome
+      const outcome = Math.random();
+      if (outcome < 0.3) {
+        // Strike
+        gameState.outs++;
+        addGameLog(`Strike! (${gameState.outs} ${gameState.outs === 1 ? 'out' : 'outs'})`);
+        if (gameState.outs >= 3) {
+          endHalfInning();
+        }
+      } else if (outcome < 0.5) {
+        // Hit
+        const hitType = Math.random();
+        if (hitType < 0.4) {
+          addGameLog('Single! Runner on first.');
+          gameState.bases[0] = true;
+        } else if (hitType < 0.7) {
+          addGameLog('Double! Runners advance.');
+          if (gameState.bases[2]) {
+            gameState.homeScore++;
+            gameState.bases[2] = false;
+            addGameLog('Run scores!');
+          }
+          if (gameState.bases[1]) {
+            gameState.bases[2] = true;
+            gameState.bases[1] = false;
+          }
+          gameState.bases[1] = true;
+        } else if (hitType < 0.9) {
+          addGameLog('Triple! Runners score!');
+          if (gameState.bases[2]) {
+            gameState.homeScore++;
+            gameState.bases[2] = false;
+          }
+          if (gameState.bases[1]) {
+            gameState.homeScore++;
+            gameState.bases[1] = false;
+          }
+          if (gameState.bases[0]) {
+            gameState.homeScore++;
+            gameState.bases[0] = false;
+          }
+          gameState.bases[2] = true;
+        } else {
+          addGameLog('HOME RUN! All runners score!');
+          let runs = 1; // Batter
+          if (gameState.bases[0]) { runs++; gameState.bases[0] = false; }
+          if (gameState.bases[1]) { runs++; gameState.bases[1] = false; }
+          if (gameState.bases[2]) { runs++; gameState.bases[2] = false; }
+          gameState.homeScore += runs;
+          addGameLog(`${runs} ${runs === 1 ? 'run' : 'runs'} score!`);
+        }
+      } else {
+        // Ball/Walk
+        addGameLog('Ball four! Walk.');
+        if (gameState.bases[0] && gameState.bases[1] && gameState.bases[2]) {
+          gameState.homeScore++;
+          addGameLog('Run forced in!');
+        } else {
+          gameState.bases[0] = true;
+        }
+      }
+      
+      ball.visible = false;
+      gameState.ballInFlight = false;
+      updateScoreboard();
+      return;
+    }
+    
+    // Animate ball flight
+    const t = progress;
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const x = lerp(0, targetX, t);
+    const y = lerp(1.5, 0.5 + height * (1 - t), t);
+    const z = lerp(-18.4, targetZ, t);
+    ball.position.set(x, y, z);
+  }, 16);
+}
+
+function endHalfInning() {
+  gameState.outs = 0;
+  gameState.bases = [false, false, false];
+  
+  if (gameState.topInning) {
+    gameState.topInning = false;
+    addGameLog(`End of top ${gameState.inning}. Red Sox coming to bat!`);
+  } else {
+    gameState.topInning = true;
+    gameState.inning++;
+    addGameLog(`End of inning ${gameState.inning - 1}.`);
+    if (gameState.inning > 9) {
+      addGameLog('GAME OVER!');
+      document.getElementById('pitchBtn').disabled = true;
+    }
+  }
+  updateScoreboard();
+}
+
+function resetGame() {
+  gameState = {
+    inning: 1,
+    topInning: true,
+    outs: 0,
+    visitorScore: 0,
+    homeScore: 0,
+    bases: [false, false, false],
+    ballPosition: null,
+    ballInFlight: false
+  };
+  ball.visible = false;
+  updateScoreboard();
+  document.getElementById('gameLog').innerHTML = '';
+  document.getElementById('pitchBtn').disabled = false;
+  addGameLog('Game reset. Play ball!');
+}
+
+// Baseball game button handlers
+document.addEventListener('DOMContentLoaded', () => {
+  const pitchBtn = document.getElementById('pitchBtn');
+  const resetBtn = document.getElementById('resetGameBtn');
+  if (pitchBtn) pitchBtn.onclick = pitchBall;
+  if (resetBtn) resetBtn.onclick = resetGame;
+});
 </script>
 </body>
 </html>
