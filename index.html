@@ -985,6 +985,12 @@ function initBaseballGame() {
   // Create field
   createField();
   
+  // Initialize variables
+  fielders = {};
+  runners = {};
+  dugoutPlayers = [];
+  gameInitialized = false;
+  
   // Create all players
   try {
     createPlayers();
@@ -994,19 +1000,25 @@ function initBaseballGame() {
     if (typeof createDugouts === 'function') {
       createDugouts();
     }
+    gameInitialized = true;
   } catch(e) {
     console.error('Error creating players:', e);
+    gameInitialized = false;
   }
 
   // Handle window resize
   window.addEventListener('resize', () => {
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    if (camera && renderer) {
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    }
   });
 
-  // Initial render
-  animate();
+  // Initial render (only if initialized)
+  if (gameInitialized) {
+    animate();
+  }
 }
 
 function createGrassTexture() {
@@ -1971,52 +1983,67 @@ function animateBatter() {
 
 function animateFielders() {
   // Animate fielders in ready position
-  if (!fielders) return;
+  if (!fielders || typeof fielders !== 'object' || Object.keys(fielders).length === 0) return;
   
-  Object.keys(fielders).forEach(key => {
-    const fielder = fielders[key];
-    if (!fielder) return;
-    
-    try {
+  try {
+    Object.keys(fielders).forEach(key => {
+      const fielder = fielders[key];
+      if (!fielder) return;
+      
       const time = Date.now() * 0.002;
       fielder.position.y = Math.sin(time + key.length) * 0.015;
-    } catch(e) {
-      // Ignore errors
-    }
-  });
+    });
+  } catch(e) {
+    // Silently ignore errors
+    console.debug('animateFielders error:', e);
+  }
 }
 
 function animateRunners() {
   // Animate base runners
-  if (!runners) return;
+  if (!runners || typeof runners !== 'object') return;
   
-  Object.keys(runners).forEach(base => {
-    const runner = runners[base];
-    if (!runner) return;
-    
-    try {
+  try {
+    Object.keys(runners).forEach(base => {
+      const runner = runners[base];
+      if (!runner) return;
+      
       const time = Date.now() * 0.01;
       runner.position.y = Math.sin(time + parseInt(base)) * 0.02;
-    } catch(e) {
-      // Ignore errors
-    }
-  });
+    });
+  } catch(e) {
+    // Silently ignore errors
+    console.debug('animateRunners error:', e);
+  }
 }
 
 function animate() {
   requestAnimationFrame(animate);
   
-  // Animate pitcher
-  animatePitcher();
+  // Don't animate if game not initialized
+  if (!gameInitialized || !scene || !camera || !renderer) return;
   
-  // Animate batter
-  animateBatter();
-  
-  // Animate fielders
-  animateFielders();
-  
-  // Animate runners
-  animateRunners();
+  try {
+    // Animate pitcher
+    animatePitcher();
+    
+    // Animate batter
+    animateBatter();
+    
+    // Animate fielders (only if initialized)
+    if (fielders && typeof fielders === 'object') {
+      animateFielders();
+    }
+    
+    // Animate runners (only if initialized)
+    if (runners && typeof runners === 'object') {
+      animateRunners();
+    }
+  } catch(e) {
+    console.error('Animation error:', e);
+    // Stop animation loop on critical error
+    return;
+  }
   
   // Animate bat swing with realistic motion
   if (bat && gameState.waitingForSwing) {
