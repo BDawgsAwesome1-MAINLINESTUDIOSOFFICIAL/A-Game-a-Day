@@ -929,10 +929,10 @@ function initBaseballGame() {
   scene.background = new THREE.Color(0x0a5d0a); // Green grass color
   scene.fog = new THREE.Fog(0x0a5d0a, 200, 500);
 
-  // Camera setup - classic NESN broadcast view (behind home plate)
-  camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(0, 25, 45); // Behind and above home plate
-  camera.lookAt(0, 0, -50); // Look toward center field
+  // Camera setup - hyperrealistic close-up broadcast view
+  camera = new THREE.PerspectiveCamera(35, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+  camera.position.set(0, 18, 28); // Much closer, behind and above home plate
+  camera.lookAt(0, 1, -15); // Look toward pitcher/infield
 
   // Renderer with enhanced settings
   renderer = new THREE.WebGLRenderer({ 
@@ -985,8 +985,10 @@ function initBaseballGame() {
   // Create field
   createField();
   
-  // Create players
+  // Create all players
   createPlayers();
+  createFieldingPositions();
+  createDugouts();
 
   // Handle window resize
   window.addEventListener('resize', () => {
@@ -1384,56 +1386,72 @@ function createHumanFigure(uniformColor, position, rotationY = 0, isPitcher = fa
   const skinTex = createSkinTexture();
   const uniformTex = createUniformTexture(uniformColor);
   
-  // Realistic head with better shape
-  const headGeo = new THREE.SphereGeometry(0.38, 32, 32);
-  // Flatten slightly for more realistic shape
-  headGeo.scale(1, 1.1, 1);
+  // Hyperrealistic head with proper proportions
+  const headGeo = new THREE.SphereGeometry(0.22, 32, 32);
+  // More realistic head shape - slightly elongated
+  headGeo.scale(0.85, 1.15, 0.9);
   const headMat = new THREE.MeshStandardMaterial({ 
     map: skinTex,
     color: 0xffdbac,
-    roughness: 0.7,
+    roughness: 0.75,
     metalness: 0.0
   });
   const head = new THREE.Mesh(headGeo, headMat);
-  head.position.y = 1.78;
+  head.position.y = 1.72;
   group.add(head);
   
-  // Hair/helmet
-  const helmetGeo = new THREE.SphereGeometry(0.42, 16, 16);
-  helmetGeo.scale(1, 0.6, 1);
+  // Realistic baseball helmet
+  const helmetGeo = new THREE.SphereGeometry(0.24, 24, 24);
+  helmetGeo.scale(0.9, 0.7, 0.95);
+  const helmetTexture = createUniformTexture(isPitcher ? '#0d4f8c' : '#c41e3a');
   const helmetMat = new THREE.MeshStandardMaterial({ 
+    map: helmetTexture,
     color: isPitcher ? 0x0d4f8c : 0xc41e3a,
-    roughness: 0.3,
-    metalness: 0.7,
+    roughness: 0.25,
+    metalness: 0.8,
     emissive: 0x000000,
     emissiveIntensity: 0
   });
   const helmet = new THREE.Mesh(helmetGeo, helmetMat);
-  helmet.position.y = 1.95;
-  helmet.rotation.x = 0.3;
+  helmet.position.y = 1.88;
+  helmet.rotation.x = 0.15;
   group.add(helmet);
   
-  // Neck
-  const neckGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.25, 16);
+  // Helmet visor
+  const visorGeo = new THREE.BoxGeometry(0.4, 0.02, 0.25);
+  const visorMat = new THREE.MeshStandardMaterial({ 
+    color: 0x000000,
+    roughness: 0.1,
+    metalness: 0.9,
+    transparent: true,
+    opacity: 0.3
+  });
+  const visor = new THREE.Mesh(visorGeo, visorMat);
+  visor.position.set(0, 1.78, 0.15);
+  visor.rotation.x = -0.4;
+  group.add(visor);
+  
+  // Realistic neck
+  const neckGeo = new THREE.CylinderGeometry(0.09, 0.11, 0.2, 16);
   const neckMat = new THREE.MeshStandardMaterial({ 
     map: skinTex,
     color: 0xffdbac,
-    roughness: 0.7
+    roughness: 0.75
   });
   const neck = new THREE.Mesh(neckGeo, neckMat);
-  neck.position.y = 1.55;
+  neck.position.y = 1.58;
   group.add(neck);
   
-  // Realistic torso with better proportions
-  const torsoGeo = new THREE.BoxGeometry(0.65, 0.85, 0.45);
+  // Hyperrealistic torso with athletic build
+  const torsoGeo = new THREE.BoxGeometry(0.5, 0.75, 0.35);
   const torsoMat = new THREE.MeshStandardMaterial({ 
     map: uniformTex,
     color: uniformColor,
-    roughness: 0.6,
+    roughness: 0.65,
     metalness: 0.0
   });
   const torso = new THREE.Mesh(torsoGeo, torsoMat);
-  torso.position.y = 1.1;
+  torso.position.y = 1.08;
   group.add(torso);
   
   // Shoulders (more defined)
@@ -1450,86 +1468,126 @@ function createHumanFigure(uniformColor, position, rotationY = 0, isPitcher = fa
   rightShoulder.position.set(0.35, 1.35, 0);
   group.add(rightShoulder);
   
-  // Upper arms
-  const upperArmGeo = new THREE.CylinderGeometry(0.13, 0.14, 0.4, 16);
+  // Hyperrealistic upper arms (athletic proportions)
+  const upperArmGeo = new THREE.CylinderGeometry(0.1, 0.11, 0.35, 16);
   const armMat = new THREE.MeshStandardMaterial({ 
     map: uniformTex,
     color: uniformColor,
-    roughness: 0.6
+    roughness: 0.65
   });
   
   const leftUpperArm = new THREE.Mesh(upperArmGeo, armMat);
-  leftUpperArm.position.set(-0.45, 1.05, 0);
-  leftUpperArm.rotation.z = isPitcher ? -0.4 : 0.4;
+  leftUpperArm.position.set(-0.38, 1.02, 0);
+  leftUpperArm.rotation.z = isPitcher ? -0.3 : 0.3;
   group.add(leftUpperArm);
   
   const rightUpperArm = new THREE.Mesh(upperArmGeo, armMat);
-  rightUpperArm.position.set(0.45, 1.05, 0);
-  rightUpperArm.rotation.z = isPitcher ? 0.4 : -0.4;
+  rightUpperArm.position.set(0.38, 1.02, 0);
+  rightUpperArm.rotation.z = isPitcher ? 0.3 : -0.3;
   group.add(rightUpperArm);
   
-  // Forearms
-  const forearmGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.35, 16);
+  // Realistic forearms
+  const forearmGeo = new THREE.CylinderGeometry(0.085, 0.095, 0.3, 16);
   
   const leftForearm = new THREE.Mesh(forearmGeo, armMat);
-  leftForearm.position.set(-0.6, 0.75, 0);
-  leftForearm.rotation.z = isPitcher ? -0.6 : 0.6;
+  leftForearm.position.set(-0.52, 0.78, 0);
+  leftForearm.rotation.z = isPitcher ? -0.5 : 0.5;
   group.add(leftForearm);
   
   const rightForearm = new THREE.Mesh(forearmGeo, armMat);
-  rightForearm.position.set(0.6, 0.75, 0);
-  rightForearm.rotation.z = isPitcher ? 0.6 : -0.6;
+  rightForearm.position.set(0.52, 0.78, 0);
+  rightForearm.rotation.z = isPitcher ? 0.5 : -0.5;
   group.add(rightForearm);
   
-  // Hands
-  const handGeo = new THREE.BoxGeometry(0.15, 0.2, 0.12);
+  // Realistic hands with glove
+  const handGeo = new THREE.BoxGeometry(0.12, 0.18, 0.1);
   const handMat = new THREE.MeshStandardMaterial({ 
     map: skinTex,
     color: 0xffdbac,
-    roughness: 0.7
+    roughness: 0.75
   });
   
   const leftHand = new THREE.Mesh(handGeo, handMat);
-  leftHand.position.set(-0.65, 0.55, 0);
+  leftHand.position.set(-0.56, 0.60, 0);
   group.add(leftHand);
   
   const rightHand = new THREE.Mesh(handGeo, handMat);
-  rightHand.position.set(0.65, 0.55, 0);
+  rightHand.position.set(0.56, 0.60, 0);
   group.add(rightHand);
   
-  // Realistic legs
+  // Baseball glove on left hand
+  const gloveGeo = new THREE.BoxGeometry(0.15, 0.22, 0.18);
+  const gloveMat = new THREE.MeshStandardMaterial({ 
+    color: 0x8b4513,
+    roughness: 0.5,
+    metalness: 0.1
+  });
+  const glove = new THREE.Mesh(gloveGeo, gloveMat);
+  glove.position.set(-0.56, 0.60, 0.05);
+  group.add(glove);
+  
+  // Hyperrealistic legs (athletic proportions)
   const legTex = createUniformTexture('#1a1a1a');
-  const legGeo = new THREE.CylinderGeometry(0.16, 0.18, 0.95, 16);
+  const legGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.85, 16);
   const legMat = new THREE.MeshStandardMaterial({ 
     map: legTex,
     color: 0x1a1a1a,
-    roughness: 0.7,
+    roughness: 0.75,
     metalness: 0.0
   });
   
   const leftLeg = new THREE.Mesh(legGeo, legMat);
-  leftLeg.position.set(-0.22, 0.38, 0);
+  leftLeg.position.set(-0.18, 0.35, 0);
   group.add(leftLeg);
   
   const rightLeg = new THREE.Mesh(legGeo, legMat);
-  rightLeg.position.set(0.22, 0.38, 0);
+  rightLeg.position.set(0.18, 0.35, 0);
   group.add(rightLeg);
   
-  // Realistic feet/shoes
-  const shoeGeo = new THREE.BoxGeometry(0.28, 0.18, 0.4);
+  // Realistic baseball cleats
+  const shoeGeo = new THREE.BoxGeometry(0.25, 0.15, 0.35);
+  const shoeTex = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 64, 64);
+    // Add cleat texture
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * 64;
+      const y = Math.random() * 64;
+      ctx.fillStyle = `rgba(50, 50, 50, ${0.3 + Math.random() * 0.3})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+    return new THREE.CanvasTexture(canvas);
+  })();
   const shoeMat = new THREE.MeshStandardMaterial({ 
+    map: shoeTex,
     color: 0x000000,
-    roughness: 0.4,
-    metalness: 0.1
+    roughness: 0.5,
+    metalness: 0.2
   });
   
   const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
-  leftShoe.position.set(-0.22, 0.05, 0.12);
+  leftShoe.position.set(-0.18, 0.06, 0.10);
   group.add(leftShoe);
   
   const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
-  rightShoe.position.set(0.22, 0.05, 0.12);
+  rightShoe.position.set(0.18, 0.06, 0.10);
   group.add(rightShoe);
+  
+  // Cleat spikes
+  const spikeGeo = new THREE.ConeGeometry(0.02, 0.08, 8);
+  const spikeMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.2 });
+  for (let i = 0; i < 4; i++) {
+    const spike1 = new THREE.Mesh(spikeGeo, spikeMat);
+    spike1.position.set(-0.18 + (i - 1.5) * 0.06, 0.01, 0.10 + 0.08);
+    group.add(spike1);
+    const spike2 = new THREE.Mesh(spikeGeo, spikeMat);
+    spike2.position.set(0.18 + (i - 1.5) * 0.06, 0.01, 0.10 + 0.08);
+    group.add(spike2);
+  }
   
   // Enable shadows
   group.traverse((child) => {
@@ -1698,27 +1756,215 @@ function createPlayers() {
   scene.add(bat);
 }
 
+function createFieldingPositions() {
+  // Catcher (behind home plate)
+  fielders.catcher = createHumanFigure('#c41e3a', { x: 0, y: 0, z: -1.5 }, Math.PI, false);
+  // Crouch position
+  fielders.catcher.scale.y = 0.85;
+  fielders.catcher.position.y = -0.15;
+  scene.add(fielders.catcher);
+  
+  // First Baseman
+  fielders.firstBase = createHumanFigure('#c41e3a', { x: 27.4, y: 0, z: 27.4 }, -Math.PI/4, false);
+  scene.add(fielders.firstBase);
+  
+  // Second Baseman
+  fielders.secondBase = createHumanFigure('#c41e3a', { x: 10, y: 0, z: 30 }, Math.PI/2, false);
+  scene.add(fielders.secondBase);
+  
+  // Third Baseman
+  fielders.thirdBase = createHumanFigure('#c41e3a', { x: -27.4, y: 0, z: 27.4 }, Math.PI/4, false);
+  scene.add(fielders.thirdBase);
+  
+  // Shortstop
+  fielders.shortstop = createHumanFigure('#c41e3a', { x: -10, y: 0, z: 30 }, Math.PI/2, false);
+  scene.add(fielders.shortstop);
+  
+  // Left Fielder
+  fielders.leftField = createHumanFigure('#c41e3a', { x: -50, y: 0, z: -40 }, 0, false);
+  scene.add(fielders.leftField);
+  
+  // Center Fielder
+  fielders.centerField = createHumanFigure('#c41e3a', { x: 0, y: 0, z: -60 }, 0, false);
+  scene.add(fielders.centerField);
+  
+  // Right Fielder
+  fielders.rightField = createHumanFigure('#c41e3a', { x: 50, y: 0, z: -40 }, 0, false);
+  scene.add(fielders.rightField);
+}
+
+function createDugouts() {
+  // Home team dugout (right side)
+  const homeDugoutPlayers = [];
+  for (let i = 0; i < 8; i++) {
+    const player = createHumanFigure('#c41e3a', { 
+      x: 35 + (i % 4) * 3, 
+      y: 0, 
+      z: 12 + Math.floor(i / 4) * 2 
+    }, Math.PI/2, false);
+    // Sitting/leaning position
+    player.rotation.x = -0.3;
+    player.scale.y = 0.9;
+    scene.add(player);
+    homeDugoutPlayers.push(player);
+  }
+  dugoutPlayers.push(...homeDugoutPlayers);
+  
+  // Away team dugout (left side)
+  const awayDugoutPlayers = [];
+  for (let i = 0; i < 8; i++) {
+    const player = createHumanFigure('#0d4f8c', { 
+      x: -35 - (i % 4) * 3, 
+      y: 0, 
+      z: 12 + Math.floor(i / 4) * 2 
+    }, -Math.PI/2, true);
+    player.rotation.x = -0.3;
+    player.scale.y = 0.9;
+    scene.add(player);
+    awayDugoutPlayers.push(player);
+  }
+  dugoutPlayers.push(...awayDugoutPlayers);
+}
+
+function createRunnerAtBase(baseNumber) {
+  if (runners[baseNumber]) {
+    scene.remove(runners[baseNumber]);
+  }
+  
+  const basePositions = [
+    { x: 27.4, z: 27.4 }, // First base
+    { x: 0, z: 38.8 },    // Second base
+    { x: -27.4, z: 27.4 } // Third base
+  ];
+  
+  const pos = basePositions[baseNumber - 1];
+  const teamColor = gameState.topInning ? '#0d4f8c' : '#c41e3a';
+  runners[baseNumber] = createHumanFigure(teamColor, { x: pos.x, y: 0, z: pos.z }, Math.PI/4, false);
+  scene.add(runners[baseNumber]);
+}
+
+function removeRunner(baseNumber) {
+  if (runners[baseNumber]) {
+    scene.remove(runners[baseNumber]);
+    delete runners[baseNumber];
+  }
+}
+
+function updateBaseRunners() {
+  // Remove all runners
+  Object.keys(runners).forEach(base => {
+    removeRunner(parseInt(base));
+  });
+  
+  // Add runners on occupied bases
+  if (gameState.bases[0]) createRunnerAtBase(1);
+  if (gameState.bases[1]) createRunnerAtBase(2);
+  if (gameState.bases[2]) createRunnerAtBase(3);
+}
+
+function animatePitcher() {
+  if (!pitcher) return;
+  
+  if (animationState.pitcher === 'windup') {
+    // Windup animation
+    pitcher.children[5].rotation.z = -1.5; // Right arm back
+    pitcher.children[3].rotation.z = 0.8; // Left arm
+    pitcher.position.z -= 0.2;
+  } else if (animationState.pitcher === 'delivery') {
+    // Delivery motion
+    pitcher.children[5].rotation.z = 1.2; // Right arm forward
+    pitcher.children[5].rotation.x = -0.5;
+    pitcher.position.z -= 0.1;
+  } else if (animationState.pitcher === 'follow') {
+    // Follow through
+    pitcher.children[5].rotation.z = 1.5;
+    pitcher.rotation.y = 0.3;
+  } else {
+    // Ready position
+    pitcher.children[5].rotation.z = -0.4;
+    pitcher.children[3].rotation.z = 0.3;
+    const time = Date.now() * 0.003;
+    pitcher.position.y = Math.sin(time) * 0.02;
+  }
+}
+
+function animateBatter() {
+  if (!batter) return;
+  
+  if (animationState.batter === 'load') {
+    // Load position
+    batter.children[5].rotation.z = -1.2;
+    batter.position.y -= 0.1;
+    batter.rotation.z = -0.1;
+  } else if (animationState.batter === 'swing') {
+    // Swing motion
+    batter.children[5].rotation.z = 2.5;
+    batter.children[5].rotation.x = 0.8;
+    batter.rotation.z = 0.5;
+    batter.position.y -= 0.15;
+  } else if (animationState.batter === 'follow') {
+    // Follow through
+    batter.children[5].rotation.z = 3.0;
+    batter.rotation.z = 0.8;
+  } else {
+    // Ready stance
+    const time = Date.now() * 0.005;
+    batter.position.y = Math.sin(time) * 0.03;
+    batter.rotation.z = Math.sin(time) * 0.05;
+    batter.children[5].rotation.z = -0.8;
+  }
+}
+
+function animateFielders() {
+  // Animate fielders in ready position
+  Object.keys(fielders).forEach(key => {
+    const fielder = fielders[key];
+    if (!fielder) return;
+    
+    const time = Date.now() * 0.002;
+    fielder.position.y = Math.sin(time + key.length) * 0.015;
+    
+    // Ready position - slight crouch
+    fielder.children[7].rotation.x = -0.1; // Left leg
+    fielder.children[8].rotation.x = -0.1; // Right leg
+  });
+}
+
+function animateRunners() {
+  // Animate base runners
+  Object.keys(runners).forEach(base => {
+    const runner = runners[base];
+    if (!runner) return;
+    
+    const time = Date.now() * 0.01;
+    runner.position.y = Math.sin(time + parseInt(base)) * 0.02;
+    
+    // Running animation
+    runner.children[7].rotation.x = Math.sin(time * 2 + parseInt(base)) * 0.3;
+    runner.children[8].rotation.x = -Math.sin(time * 2 + parseInt(base)) * 0.3;
+  });
+}
+
 function animate() {
   requestAnimationFrame(animate);
+  
+  // Animate pitcher
+  animatePitcher();
+  
+  // Animate batter
+  animateBatter();
+  
+  // Animate fielders
+  animateFielders();
+  
+  // Animate runners
+  animateRunners();
   
   // Animate bat swing with realistic motion
   if (bat && gameState.waitingForSwing) {
     const time = Date.now() * 0.01;
     bat.rotation.x = Math.sin(time) * 0.08 - 0.3;
     bat.position.y = Math.sin(time * 1.5) * 0.05;
-  }
-  
-  // Animate pitcher breathing/idle
-  if (pitcher && !gameState.ballInFlight) {
-    const time = Date.now() * 0.003;
-    pitcher.position.y = Math.sin(time) * 0.02;
-  }
-  
-  // Animate batter ready stance
-  if (batter && gameState.waitingForSwing) {
-    const time = Date.now() * 0.005;
-    batter.position.y = Math.sin(time) * 0.03;
-    batter.rotation.z = Math.sin(time) * 0.05;
   }
   
   // Update swing power bar
@@ -1728,11 +1974,11 @@ function animate() {
     if (powerBar) powerBar.style.width = swingPower + '%';
   }
   
-  // Camera subtle movement for realism
+  // Camera subtle movement for realism (more stable, closer)
   if (camera) {
     const time = Date.now() * 0.001;
-    camera.position.x = Math.sin(time * 0.5) * 0.5;
-    camera.position.y = 25 + Math.sin(time * 0.3) * 0.3;
+    camera.position.x = Math.sin(time * 0.3) * 0.2;
+    camera.position.y = 18 + Math.sin(time * 0.2) * 0.15;
   }
   
   renderer.render(scene, camera);
@@ -1752,6 +1998,9 @@ function updateScoreboard() {
   document.getElementById('base1').style.background = gameState.bases[0] ? '#ffd700' : 'rgba(255,255,255,0.2)';
   document.getElementById('base2').style.background = gameState.bases[1] ? '#ffd700' : 'rgba(255,255,255,0.2)';
   document.getElementById('base3').style.background = gameState.bases[2] ? '#ffd700' : 'rgba(255,255,255,0.2)';
+  
+  // Update base runners
+  updateBaseRunners();
 }
 
 function addGameLog(message) {
@@ -1773,6 +2022,7 @@ function pitchBall() {
   gameState.waitingForSwing = false;
   ball.visible = true;
   ball.position.set(0, 1.5, -18.4);
+  ball.rotation.set(0, 0, 0);
   
   // Pitch parameters
   const targetZ = Math.random() * 25 + 8;
@@ -1786,12 +2036,17 @@ function pitchBall() {
     swingWindow: { start: 450, end: 650 } // milliseconds
   };
   
-  // Animate pitcher windup
-  if (pitcher) {
-    const originalZ = pitcher.position.z;
-    pitcher.position.z -= 0.3;
-    setTimeout(() => { if (pitcher) pitcher.position.z = originalZ; }, 200);
-  }
+  // Realistic pitcher animation sequence
+  animationState.pitcher = 'windup';
+  setTimeout(() => {
+    animationState.pitcher = 'delivery';
+    setTimeout(() => {
+      animationState.pitcher = 'follow';
+      setTimeout(() => {
+        animationState.pitcher = 'ready';
+      }, 400);
+    }, 100);
+  }, 300);
   
   let progress = 0;
   const pitchStartTime = Date.now();
@@ -2192,6 +2447,19 @@ function swingBat() {
   
   swingTiming = Date.now();
   swingCharging = false;
+  
+  // Realistic batter swing animation
+  animationState.batter = 'load';
+  setTimeout(() => {
+    animationState.batter = 'swing';
+    setTimeout(() => {
+      animationState.batter = 'follow';
+      setTimeout(() => {
+        animationState.batter = 'ready';
+      }, 500);
+    }, 150);
+  }, 50);
+  
   document.getElementById('swingIndicator').textContent = '⚾';
   setTimeout(() => {
     if (document.getElementById('swingIndicator')) {
