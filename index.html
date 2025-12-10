@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>A Game a Day — Ultra AI Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <style>
 :root{
   --accent1:#0b74d1;
@@ -851,6 +851,13 @@ let gameState = {
 function initBaseballGame() {
   const canvas = document.getElementById('baseballCanvas');
   if (!canvas) return;
+  
+  // Check if Three.js is loaded
+  if (typeof THREE === 'undefined') {
+    console.error('Three.js is not loaded. Please check your internet connection.');
+    canvas.innerHTML = '<div style="padding: 40px; text-align: center; color: white;">Error: Three.js library failed to load. Please check your internet connection and refresh the page.</div>';
+    return;
+  }
 
   // Scene setup
   scene = new THREE.Scene();
