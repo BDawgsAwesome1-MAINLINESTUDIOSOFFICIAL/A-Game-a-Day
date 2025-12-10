@@ -889,6 +889,9 @@ document.getElementById('generateBtn').onclick=generateAndRender;
 
 // Baseball Game
 let scene = null, camera = null, renderer = null, field = null, pitcher = null, batter = null, bat = null, ball = null;
+let fielders = {}; // All fielding positions - MUST be initialized
+let runners = {}; // Base runners - MUST be initialized
+let dugoutPlayers = []; // Players in dugouts - MUST be initialized
 let gameMode = 'computer'; // computer, pitch, bat, full
 let swingPower = 0;
 let swingCharging = false;
@@ -896,6 +899,12 @@ let ballInFlight = false;
 let swingTiming = null;
 let currentPitch = null;
 let computerPlayInterval = null;
+let gameInitialized = false; // Flag to prevent animation before initialization
+let animationState = {
+  pitcher: 'ready', // ready, windup, delivery, follow
+  batter: 'ready', // ready, load, swing, follow
+  runners: {}
+};
 
 let gameState = {
   inning: 1,
