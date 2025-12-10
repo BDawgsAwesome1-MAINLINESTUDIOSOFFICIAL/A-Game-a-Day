@@ -934,19 +934,53 @@ function initBaseballGame() {
   camera.position.set(0, 25, 45); // Behind and above home plate
   camera.lookAt(0, 0, -50); // Look toward center field
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  // Renderer with enhanced settings
+  renderer = new THREE.WebGLRenderer({ 
+    antialias: true,
+    powerPreference: "high-performance",
+    stencil: false,
+    depth: true
+  });
   renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
   canvas.appendChild(renderer.domElement);
 
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  // Advanced lighting setup
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(50, 100, 50);
-  directionalLight.castShadow = true;
-  scene.add(directionalLight);
+  
+  // Main directional light (sun)
+  const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  sunLight.position.set(50, 120, 50);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 2048;
+  sunLight.shadow.mapSize.height = 2048;
+  sunLight.shadow.camera.near = 0.5;
+  sunLight.shadow.camera.far = 500;
+  sunLight.shadow.camera.left = -100;
+  sunLight.shadow.camera.right = 100;
+  sunLight.shadow.camera.top = 100;
+  sunLight.shadow.camera.bottom = -100;
+  sunLight.shadow.bias = -0.0001;
+  scene.add(sunLight);
+  
+  // Fill light
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+  fillLight.position.set(-30, 60, -30);
+  scene.add(fillLight);
+  
+  // Rim light for dramatic effect
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+  rimLight.position.set(0, 20, 100);
+  scene.add(rimLight);
+  
+  // Hemisphere light for sky
+  const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x8b7355, 0.3);
+  scene.add(hemiLight);
 
   // Create field
   createField();
@@ -965,59 +999,205 @@ function initBaseballGame() {
   animate();
 }
 
+function createGrassTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  
+  // Base green
+  ctx.fillStyle = '#0a5d0a';
+  ctx.fillRect(0, 0, 512, 512);
+  
+  // Add grass pattern
+  for (let i = 0; i < 5000; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const hue = 90 + Math.random() * 30 - 15;
+    const lightness = 20 + Math.random() * 10;
+    ctx.fillStyle = `hsl(${hue}, 70%, ${lightness}%)`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+  
+  // Add mowing pattern
+  for (let y = 0; y < 512; y += 8) {
+    ctx.strokeStyle = `rgba(0, 100, 0, 0.1)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(512, y);
+    ctx.stroke();
+  }
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(20, 20);
+  return texture;
+}
+
 function createField() {
-  // Grass
-  const grass = new THREE.PlaneGeometry(200, 200);
-  const grassMat = new THREE.MeshLambertMaterial({ color: 0x0a5d0a });
+  // Realistic grass with texture
+  const grass = new THREE.PlaneGeometry(200, 200, 50, 50);
+  const grassTexture = createGrassTexture();
+  const grassMat = new THREE.MeshStandardMaterial({ 
+    map: grassTexture,
+    color: 0x0a5d0a,
+    roughness: 0.9,
+    metalness: 0.0
+  });
   const grassMesh = new THREE.Mesh(grass, grassMat);
   grassMesh.rotation.x = -Math.PI / 2;
   grassMesh.position.y = 0;
   grassMesh.receiveShadow = true;
+  
+  // Add slight displacement for realism
+  const positions = grassMesh.geometry.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const z = positions.getZ(i);
+    const x = positions.getX(i);
+    const offset = (Math.sin(x * 0.1) + Math.cos(z * 0.1)) * 0.05;
+    positions.setY(i, offset);
+  }
+  positions.needsUpdate = true;
+  grassMesh.geometry.computeVertexNormals();
+  
   scene.add(grassMesh);
 
-  // Infield dirt
-  const dirt = new THREE.CircleGeometry(35, 32);
-  const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
-  const dirtMesh = new THREE.Mesh(dirt, dirtMat);
+  // Realistic infield dirt
+  const dirtGeo = new THREE.CircleGeometry(35, 64);
+  const dirtTexture = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 2000; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      const brightness = 100 + Math.random() * 50;
+      ctx.fillStyle = `rgb(${brightness * 0.5}, ${brightness * 0.3}, ${brightness * 0.2})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(3, 3);
+    return texture;
+  })();
+  const dirtMat = new THREE.MeshStandardMaterial({ 
+    map: dirtTexture,
+    color: 0x8b4513,
+    roughness: 0.95,
+    metalness: 0.0
+  });
+  const dirtMesh = new THREE.Mesh(dirtGeo, dirtMat);
   dirtMesh.rotation.x = -Math.PI / 2;
-  dirtMesh.position.y = 0.01;
+  dirtMesh.position.y = 0.02;
+  dirtMesh.receiveShadow = true;
   scene.add(dirtMesh);
 
-  // Bases
-  const baseGeometry = new THREE.BoxGeometry(3, 0.2, 3);
-  const baseMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  // Realistic bases with texture
+  const baseTexture = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 128, 128);
+    // Add fabric texture
+    for (let i = 0; i < 500; i++) {
+      const x = Math.random() * 128;
+      const y = Math.random() * 128;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + Math.random() * 0.3})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+    return new THREE.CanvasTexture(canvas);
+  })();
+  const baseMat = new THREE.MeshStandardMaterial({ 
+    map: baseTexture,
+    color: 0xffffff,
+    roughness: 0.8,
+    metalness: 0.1
+  });
   
-  // Home plate
-  const homePlate = new THREE.Mesh(baseGeometry, baseMat);
-  homePlate.position.set(0, 0.1, 0);
+  // Home plate (pentagon shape)
+  const homePlateShape = new THREE.Shape();
+  homePlateShape.moveTo(0, 0);
+  homePlateShape.lineTo(-0.43, 0.25);
+  homePlateShape.lineTo(-0.43, -0.25);
+  homePlateShape.lineTo(0, -0.5);
+  homePlateShape.lineTo(0.43, -0.25);
+  homePlateShape.lineTo(0.43, 0.25);
+  homePlateShape.lineTo(0, 0);
+  const homePlateGeo = new THREE.ExtrudeGeometry(homePlateShape, { depth: 0.15, bevelEnabled: false });
+  const homePlate = new THREE.Mesh(homePlateGeo, baseMat);
+  homePlate.rotation.x = -Math.PI / 2;
+  homePlate.position.set(0, 0.15, 0);
+  homePlate.scale.set(7, 7, 1);
+  homePlate.castShadow = true;
+  homePlate.receiveShadow = true;
   scene.add(homePlate);
   
-  // First base
-  const firstBase = new THREE.Mesh(baseGeometry, baseMat);
-  firstBase.position.set(27.4, 0.1, 27.4);
+  // First base (rounded)
+  const firstBaseGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.15, 16);
+  const firstBase = new THREE.Mesh(firstBaseGeo, baseMat);
+  firstBase.rotation.x = Math.PI / 2;
+  firstBase.position.set(27.4, 0.15, 27.4);
+  firstBase.castShadow = true;
+  firstBase.receiveShadow = true;
   scene.add(firstBase);
   
   // Second base
-  const secondBase = new THREE.Mesh(baseGeometry, baseMat);
-  secondBase.position.set(0, 0.1, 38.8);
+  const secondBase = new THREE.Mesh(firstBaseGeo.clone(), baseMat);
+  secondBase.rotation.x = Math.PI / 2;
+  secondBase.position.set(0, 0.15, 38.8);
+  secondBase.castShadow = true;
+  secondBase.receiveShadow = true;
   scene.add(secondBase);
   
   // Third base
-  const thirdBase = new THREE.Mesh(baseGeometry, baseMat);
-  thirdBase.position.set(-27.4, 0.1, 27.4);
+  const thirdBase = new THREE.Mesh(firstBaseGeo.clone(), baseMat);
+  thirdBase.rotation.x = Math.PI / 2;
+  thirdBase.position.set(-27.4, 0.15, 27.4);
+  thirdBase.castShadow = true;
+  thirdBase.receiveShadow = true;
   scene.add(thirdBase);
 
-  // Pitcher's mound
-  const mound = new THREE.CylinderGeometry(3, 3, 0.25, 32);
-  const moundMat = new THREE.MeshLambertMaterial({ color: 0x8b7355 });
-  const moundMesh = new THREE.Mesh(mound, moundMat);
-  moundMesh.position.set(0, 0.125, -18.4);
+  // Realistic pitcher's mound
+  const moundGeo = new THREE.CylinderGeometry(3, 3, 0.3, 64);
+  const moundTexture = dirtTexture.clone();
+  const moundMat = new THREE.MeshStandardMaterial({ 
+    map: moundTexture,
+    color: 0x8b7355,
+    roughness: 0.95,
+    metalness: 0.0
+  });
+  const moundMesh = new THREE.Mesh(moundGeo, moundMat);
+  moundMesh.position.set(0, 0.15, -18.4);
+  moundMesh.castShadow = true;
+  moundMesh.receiveShadow = true;
   scene.add(moundMesh);
+  
+  // Rubber plate on mound
+  const rubberGeo = new THREE.BoxGeometry(0.6, 0.05, 0.24);
+  const rubberMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+  const rubber = new THREE.Mesh(rubberGeo, rubberMat);
+  rubber.position.set(0, 0.32, -18.4);
+  rubber.castShadow = true;
+  scene.add(rubber);
 
-  // Base paths (lines)
-  const pathMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const pathWidth = 0.1;
-  const pathHeight = 0.05;
+  // Realistic base paths (lines)
+  const pathMat = new THREE.MeshStandardMaterial({ 
+    color: 0xffffff,
+    roughness: 0.3,
+    metalness: 0.2,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.1
+  });
+  const pathWidth = 0.12;
+  const pathHeight = 0.06;
 
   // First base line
   const path1 = new THREE.BoxGeometry(40, pathHeight, pathWidth);
@@ -1047,75 +1227,309 @@ function createField() {
   path4Mesh.rotation.y = Math.PI / 4;
   scene.add(path4Mesh);
 
-  // Outfield wall (simple representation)
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-  const wall = new THREE.BoxGeometry(120, 8, 2);
+  // Realistic outfield wall
+  const wallTexture = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, 512, 256);
+    // Add wall texture
+    for (let y = 0; y < 256; y += 8) {
+      ctx.strokeStyle = `rgba(255, 255, 255, 0.1)`;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(512, y);
+      ctx.stroke();
+    }
+    return new THREE.CanvasTexture(canvas);
+  })();
+  wallTexture.wrapS = THREE.RepeatWrapping;
+  wallTexture.wrapT = THREE.RepeatWrapping;
+  wallTexture.repeat.set(5, 2);
+  
+  const wallMat = new THREE.MeshStandardMaterial({ 
+    map: wallTexture,
+    color: 0x2a2a2a,
+    roughness: 0.7,
+    metalness: 0.1
+  });
+  const wall = new THREE.BoxGeometry(140, 10, 3);
   const wallMesh = new THREE.Mesh(wall, wallMat);
-  wallMesh.position.set(0, 4, -90);
+  wallMesh.position.set(0, 5, -95);
+  wallMesh.castShadow = true;
+  wallMesh.receiveShadow = true;
   scene.add(wallMesh);
+  
+  // Add padding on wall
+  const paddingGeo = new THREE.BoxGeometry(140, 1, 0.5);
+  const paddingMat = new THREE.MeshStandardMaterial({ 
+    color: 0xffff00,
+    roughness: 0.3,
+    emissive: 0xffff00,
+    emissiveIntensity: 0.3
+  });
+  const padding = new THREE.Mesh(paddingGeo, paddingMat);
+  padding.position.set(0, 10.5, -95);
+  scene.add(padding);
+  
+  // Stadium stands in background
+  const standsGeo = new THREE.BoxGeometry(200, 40, 5);
+  const standsTexture = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, 512, 256);
+    // Add crowd pattern
+    for (let i = 0; i < 10000; i++) {
+      const x = Math.random() * 512;
+      const y = Math.random() * 256;
+      const hue = Math.random() > 0.7 ? 0 : Math.random() * 360;
+      ctx.fillStyle = `hsl(${hue}, 70%, ${30 + Math.random() * 40}%)`;
+      ctx.fillRect(x, y, 2, 3);
+    }
+    return new THREE.CanvasTexture(canvas);
+  })();
+  standsTexture.wrapS = THREE.RepeatWrapping;
+  standsTexture.wrapT = THREE.RepeatWrapping;
+  standsTexture.repeat.set(3, 2);
+  
+  const standsMat = new THREE.MeshStandardMaterial({ 
+    map: standsTexture,
+    color: 0x3a3a3a,
+    roughness: 0.8,
+    metalness: 0.0
+  });
+  const stands = new THREE.Mesh(standsGeo, standsMat);
+  stands.position.set(0, 25, -110);
+  stands.rotation.x = -0.1;
+  scene.add(stands);
+  
+  // Add dugouts
+  const dugoutGeo = new THREE.BoxGeometry(15, 3, 8);
+  const dugoutMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.6 });
+  const dugout1 = new THREE.Mesh(dugoutGeo, dugoutMat);
+  dugout1.position.set(40, 1.5, 15);
+  scene.add(dugout1);
+  const dugout2 = new THREE.Mesh(dugoutGeo, dugoutMat);
+  dugout2.position.set(-40, 1.5, 15);
+  scene.add(dugout2);
+  
+  // Foul poles
+  const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 25, 8);
+  const poleMat = new THREE.MeshStandardMaterial({ 
+    color: 0xffff00,
+    emissive: 0xffff00,
+    emissiveIntensity: 0.5
+  });
+  const pole1 = new THREE.Mesh(poleGeo, poleMat);
+  pole1.position.set(60, 12.5, -95);
+  scene.add(pole1);
+  const pole2 = new THREE.Mesh(poleGeo, poleMat);
+  pole2.position.set(-60, 12.5, -95);
+  scene.add(pole2);
 }
 
-function createHumanFigure(uniformColor, position, rotationY = 0) {
-  const group = new THREE.Group();
-  const skinColor = 0xffdbac;
+function createSkinTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const baseColor = '#ffdbac';
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(0, 0, 128, 128);
   
-  // Head
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.35, 16, 16),
-    new THREE.MeshLambertMaterial({ color: skinColor })
-  );
-  head.position.y = 1.75;
+  // Add skin variation
+  for (let i = 0; i < 300; i++) {
+    const x = Math.random() * 128;
+    const y = Math.random() * 128;
+    const brightness = 200 + Math.random() * 55;
+    ctx.fillStyle = `rgb(${brightness}, ${brightness * 0.85}, ${brightness * 0.7})`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+  
+  return new THREE.CanvasTexture(canvas);
+}
+
+function createUniformTexture(color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const rgb = parseInt(color.replace('#', ''), 16);
+  const r = (rgb >> 16) & 0xff;
+  const g = (rgb >> 8) & 0xff;
+  const b = rgb & 0xff;
+  
+  ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+  ctx.fillRect(0, 0, 128, 128);
+  
+  // Add fabric texture
+  for (let i = 0; i < 200; i++) {
+    const x = Math.random() * 128;
+    const y = Math.random() * 128;
+    const variation = 20;
+    ctx.fillStyle = `rgb(${Math.max(0, r - variation + Math.random() * variation * 2)}, ${Math.max(0, g - variation + Math.random() * variation * 2)}, ${Math.max(0, b - variation + Math.random() * variation * 2)})`;
+    ctx.fillRect(x, y, 1, 1);
+  }
+  
+  return new THREE.CanvasTexture(canvas);
+}
+
+function createHumanFigure(uniformColor, position, rotationY = 0, isPitcher = false) {
+  const group = new THREE.Group();
+  const skinTex = createSkinTexture();
+  const uniformTex = createUniformTexture(uniformColor);
+  
+  // Realistic head with better shape
+  const headGeo = new THREE.SphereGeometry(0.38, 32, 32);
+  // Flatten slightly for more realistic shape
+  headGeo.scale(1, 1.1, 1);
+  const headMat = new THREE.MeshStandardMaterial({ 
+    map: skinTex,
+    color: 0xffdbac,
+    roughness: 0.7,
+    metalness: 0.0
+  });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 1.78;
   group.add(head);
   
-  // Torso
-  const torso = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.8, 0.4),
-    new THREE.MeshLambertMaterial({ color: uniformColor })
-  );
+  // Hair/helmet
+  const helmetGeo = new THREE.SphereGeometry(0.42, 16, 16);
+  helmetGeo.scale(1, 0.6, 1);
+  const helmetMat = new THREE.MeshStandardMaterial({ 
+    color: isPitcher ? 0x0d4f8c : 0xc41e3a,
+    roughness: 0.3,
+    metalness: 0.7,
+    emissive: 0x000000,
+    emissiveIntensity: 0
+  });
+  const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+  helmet.position.y = 1.95;
+  helmet.rotation.x = 0.3;
+  group.add(helmet);
+  
+  // Neck
+  const neckGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.25, 16);
+  const neckMat = new THREE.MeshStandardMaterial({ 
+    map: skinTex,
+    color: 0xffdbac,
+    roughness: 0.7
+  });
+  const neck = new THREE.Mesh(neckGeo, neckMat);
+  neck.position.y = 1.55;
+  group.add(neck);
+  
+  // Realistic torso with better proportions
+  const torsoGeo = new THREE.BoxGeometry(0.65, 0.85, 0.45);
+  const torsoMat = new THREE.MeshStandardMaterial({ 
+    map: uniformTex,
+    color: uniformColor,
+    roughness: 0.6,
+    metalness: 0.0
+  });
+  const torso = new THREE.Mesh(torsoGeo, torsoMat);
   torso.position.y = 1.1;
   group.add(torso);
   
-  // Arms
-  const armGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7, 8);
-  const armMat = new THREE.MeshLambertMaterial({ color: uniformColor });
+  // Shoulders (more defined)
+  const shoulderGeo = new THREE.SphereGeometry(0.22, 16, 16);
+  const shoulderMat = new THREE.MeshStandardMaterial({ 
+    map: uniformTex,
+    color: uniformColor,
+    roughness: 0.6
+  });
+  const leftShoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
+  leftShoulder.position.set(-0.35, 1.35, 0);
+  group.add(leftShoulder);
+  const rightShoulder = new THREE.Mesh(shoulderGeo, shoulderMat);
+  rightShoulder.position.set(0.35, 1.35, 0);
+  group.add(rightShoulder);
   
-  // Left arm
-  const leftArm = new THREE.Mesh(armGeo, armMat);
-  leftArm.position.set(-0.4, 1.0, 0);
-  leftArm.rotation.z = 0.3;
-  group.add(leftArm);
+  // Upper arms
+  const upperArmGeo = new THREE.CylinderGeometry(0.13, 0.14, 0.4, 16);
+  const armMat = new THREE.MeshStandardMaterial({ 
+    map: uniformTex,
+    color: uniformColor,
+    roughness: 0.6
+  });
   
-  // Right arm
-  const rightArm = new THREE.Mesh(armGeo, armMat);
-  rightArm.position.set(0.4, 1.0, 0);
-  rightArm.rotation.z = -0.3;
-  group.add(rightArm);
+  const leftUpperArm = new THREE.Mesh(upperArmGeo, armMat);
+  leftUpperArm.position.set(-0.45, 1.05, 0);
+  leftUpperArm.rotation.z = isPitcher ? -0.4 : 0.4;
+  group.add(leftUpperArm);
   
-  // Legs
-  const legGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.9, 8);
-  const legMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a }); // Pants
+  const rightUpperArm = new THREE.Mesh(upperArmGeo, armMat);
+  rightUpperArm.position.set(0.45, 1.05, 0);
+  rightUpperArm.rotation.z = isPitcher ? 0.4 : -0.4;
+  group.add(rightUpperArm);
   
-  // Left leg
+  // Forearms
+  const forearmGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.35, 16);
+  
+  const leftForearm = new THREE.Mesh(forearmGeo, armMat);
+  leftForearm.position.set(-0.6, 0.75, 0);
+  leftForearm.rotation.z = isPitcher ? -0.6 : 0.6;
+  group.add(leftForearm);
+  
+  const rightForearm = new THREE.Mesh(forearmGeo, armMat);
+  rightForearm.position.set(0.6, 0.75, 0);
+  rightForearm.rotation.z = isPitcher ? 0.6 : -0.6;
+  group.add(rightForearm);
+  
+  // Hands
+  const handGeo = new THREE.BoxGeometry(0.15, 0.2, 0.12);
+  const handMat = new THREE.MeshStandardMaterial({ 
+    map: skinTex,
+    color: 0xffdbac,
+    roughness: 0.7
+  });
+  
+  const leftHand = new THREE.Mesh(handGeo, handMat);
+  leftHand.position.set(-0.65, 0.55, 0);
+  group.add(leftHand);
+  
+  const rightHand = new THREE.Mesh(handGeo, handMat);
+  rightHand.position.set(0.65, 0.55, 0);
+  group.add(rightHand);
+  
+  // Realistic legs
+  const legTex = createUniformTexture('#1a1a1a');
+  const legGeo = new THREE.CylinderGeometry(0.16, 0.18, 0.95, 16);
+  const legMat = new THREE.MeshStandardMaterial({ 
+    map: legTex,
+    color: 0x1a1a1a,
+    roughness: 0.7,
+    metalness: 0.0
+  });
+  
   const leftLeg = new THREE.Mesh(legGeo, legMat);
-  leftLeg.position.set(-0.2, 0.35, 0);
+  leftLeg.position.set(-0.22, 0.38, 0);
   group.add(leftLeg);
   
-  // Right leg
   const rightLeg = new THREE.Mesh(legGeo, legMat);
-  rightLeg.position.set(0.2, 0.35, 0);
+  rightLeg.position.set(0.22, 0.38, 0);
   group.add(rightLeg);
   
-  // Feet
-  const footGeo = new THREE.BoxGeometry(0.25, 0.15, 0.35);
-  const footMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  // Realistic feet/shoes
+  const shoeGeo = new THREE.BoxGeometry(0.28, 0.18, 0.4);
+  const shoeMat = new THREE.MeshStandardMaterial({ 
+    color: 0x000000,
+    roughness: 0.4,
+    metalness: 0.1
+  });
   
-  const leftFoot = new THREE.Mesh(footGeo, footMat);
-  leftFoot.position.set(-0.2, 0.05, 0.1);
-  group.add(leftFoot);
+  const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
+  leftShoe.position.set(-0.22, 0.05, 0.12);
+  group.add(leftShoe);
   
-  const rightFoot = new THREE.Mesh(footGeo, footMat);
-  rightFoot.position.set(0.2, 0.05, 0.1);
-  group.add(rightFoot);
+  const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
+  rightShoe.position.set(0.22, 0.05, 0.12);
+  group.add(rightShoe);
   
   // Enable shadows
   group.traverse((child) => {
@@ -1132,74 +1546,179 @@ function createHumanFigure(uniformColor, position, rotationY = 0) {
 }
 
 function createPlayers() {
-  // Pitcher - better human figure
-  pitcher = createHumanFigure(0x0d4f8c, { x: 0, y: 0, z: -18.4 }, 0);
+  // Pitcher - hyperrealistic figure
+  pitcher = createHumanFigure('#0d4f8c', { x: 0, y: 0, z: -18.4 }, 0, true);
   scene.add(pitcher);
 
-  // Batter - better human figure
-  batter = createHumanFigure(0xc41e3a, { x: -1, y: 0, z: 2 }, Math.PI);
+  // Batter - hyperrealistic figure
+  batter = createHumanFigure('#c41e3a', { x: -1, y: 0, z: 2 }, Math.PI, false);
   scene.add(batter);
+
+  // Hyperrealistic baseball with detailed stitching
+  const ballGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+  const ballTexture = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    
+    // White leather base
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 256, 256);
+    
+    // Add leather texture
+    for (let i = 0; i < 500; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      const gray = 240 + Math.random() * 15;
+      ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+    
+    // Red stitching pattern (figure-8)
+    ctx.strokeStyle = '#cc0000';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    
+    // Top stitching
+    ctx.beginPath();
+    ctx.arc(128, 64, 60, Math.PI, 0, false);
+    ctx.stroke();
+    
+    // Bottom stitching
+    ctx.beginPath();
+    ctx.arc(128, 192, 60, 0, Math.PI, false);
+    ctx.stroke();
+    
+    // Center lines
+    ctx.beginPath();
+    ctx.moveTo(128, 4);
+    ctx.lineTo(128, 128);
+    ctx.moveTo(128, 128);
+    ctx.lineTo(128, 252);
+    ctx.stroke();
+    
+    // Stitching detail
+    ctx.strokeStyle = '#990000';
+    ctx.lineWidth = 1;
+    for (let y = 30; y < 226; y += 8) {
+      const x1 = 128 - Math.sqrt(3600 - Math.pow(y - 128, 2));
+      const x2 = 128 + Math.sqrt(3600 - Math.pow(y - 128, 2));
+      if (x1 > 0 && x2 < 256) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y);
+        ctx.lineTo(x1 + 2, y);
+        ctx.moveTo(x2 - 2, y);
+        ctx.lineTo(x2, y);
+        ctx.stroke();
+      }
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  })();
   
-  // Bat
+  const ballMat = new THREE.MeshStandardMaterial({ 
+    map: ballTexture,
+    color: 0xffffff,
+    roughness: 0.5,
+    metalness: 0.1,
+    normalMap: ballTexture, // Simple normal for texture
+    normalScale: new THREE.Vector2(0.5, 0.5)
+  });
+  ball = new THREE.Mesh(ballGeometry, ballMat);
+  ball.position.set(0, 1.5, -18.4);
+  ball.visible = false;
+  ball.castShadow = true;
+  scene.add(ball);
+  
+  // Realistic bat with wood grain
+  if (bat) {
+    scene.remove(bat);
+  }
   const batGroup = new THREE.Group();
-  const batHandle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8),
-    new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-  );
+  
+  const batHandleGeo = new THREE.CylinderGeometry(0.025, 0.03, 0.65, 16);
+  const batHandleMat = new THREE.MeshStandardMaterial({ 
+    color: 0x8b4513,
+    roughness: 0.8,
+    metalness: 0.0
+  });
+  const batHandle = new THREE.Mesh(batHandleGeo, batHandleMat);
   batHandle.position.y = 1.2;
   batHandle.rotation.z = -Math.PI / 6;
   batGroup.add(batHandle);
   
-  const batBarrel = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.03, 0.5, 8),
-    new THREE.MeshLambertMaterial({ color: 0x654321 })
-  );
+  const batBarrelGeo = new THREE.CylinderGeometry(0.07, 0.03, 0.55, 16);
+  const batWoodTexture = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(0, 0, 128, 256);
+    // Wood grain
+    for (let i = 0; i < 50; i++) {
+      const y = i * 5;
+      ctx.strokeStyle = `rgba(139, 69, 19, ${0.3 + Math.random() * 0.4})`;
+      ctx.lineWidth = 1 + Math.random();
+      ctx.beginPath();
+      ctx.moveTo(0, y + Math.sin(i) * 10);
+      ctx.bezierCurveTo(
+        30, y + Math.sin(i + 1) * 15,
+        60, y + Math.sin(i + 2) * 10,
+        128, y + Math.sin(i + 3) * 15
+      );
+      ctx.stroke();
+    }
+    return new THREE.CanvasTexture(canvas);
+  })();
+  batWoodTexture.wrapS = THREE.RepeatWrapping;
+  batWoodTexture.wrapT = THREE.RepeatWrapping;
+  
+  const batBarrelMat = new THREE.MeshStandardMaterial({ 
+    map: batWoodTexture,
+    color: 0x654321,
+    roughness: 0.7,
+    metalness: 0.0
+  });
+  const batBarrel = new THREE.Mesh(batBarrelGeo, batBarrelMat);
   batBarrel.position.y = 1.6;
   batBarrel.rotation.z = -Math.PI / 6;
   batGroup.add(batBarrel);
   
   batGroup.position.set(-1.2, 0, 2.2);
   batGroup.rotation.y = Math.PI;
+  batGroup.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.castShadow = true;
+    }
+  });
   bat = batGroup;
   scene.add(bat);
-
-  // Ball
-  const ballGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-  const ballMat = new THREE.MeshLambertMaterial({ 
-    color: 0xffffff,
-    map: (() => {
-      // Add red stitching pattern
-      const canvas = document.createElement('canvas');
-      canvas.width = 64;
-      canvas.height = 64;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 64, 64);
-      ctx.strokeStyle = '#cc0000';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(32, 32, 25, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(32, 7);
-      ctx.lineTo(32, 57);
-      ctx.stroke();
-      const texture = new THREE.CanvasTexture(canvas);
-      return texture;
-    })()
-  });
-  ball = new THREE.Mesh(ballGeometry, ballMat);
-  ball.position.set(0, 1.5, -18.4);
-  ball.visible = false;
-  scene.add(ball);
 }
 
 function animate() {
   requestAnimationFrame(animate);
   
-  // Animate bat swing
+  // Animate bat swing with realistic motion
   if (bat && gameState.waitingForSwing) {
-    bat.rotation.x = Math.sin(Date.now() * 0.01) * 0.1;
+    const time = Date.now() * 0.01;
+    bat.rotation.x = Math.sin(time) * 0.08 - 0.3;
+    bat.position.y = Math.sin(time * 1.5) * 0.05;
+  }
+  
+  // Animate pitcher breathing/idle
+  if (pitcher && !gameState.ballInFlight) {
+    const time = Date.now() * 0.003;
+    pitcher.position.y = Math.sin(time) * 0.02;
+  }
+  
+  // Animate batter ready stance
+  if (batter && gameState.waitingForSwing) {
+    const time = Date.now() * 0.005;
+    batter.position.y = Math.sin(time) * 0.03;
+    batter.rotation.z = Math.sin(time) * 0.05;
   }
   
   // Update swing power bar
@@ -1207,6 +1726,13 @@ function animate() {
     swingPower = Math.min(100, swingPower + 2);
     const powerBar = document.getElementById('swingPower');
     if (powerBar) powerBar.style.width = swingPower + '%';
+  }
+  
+  // Camera subtle movement for realism
+  if (camera) {
+    const time = Date.now() * 0.001;
+    camera.position.x = Math.sin(time * 0.5) * 0.5;
+    camera.position.y = 25 + Math.sin(time * 0.3) * 0.3;
   }
   
   renderer.render(scene, camera);
@@ -1289,16 +1815,26 @@ function pitchBall() {
       return;
     }
     
-    // Animate ball flight
+    // Realistic physics-based ball flight with curve
     const t = progress;
     const lerp = (a, b, t) => a + (b - a) * t;
     const easeOut = (t) => 1 - Math.pow(1 - t, 3);
     const eased = easeOut(t);
     
-    const x = lerp(0, targetX, eased);
-    const y = lerp(1.5, 0.5 + height * (1 - eased), eased);
+    // Realistic trajectory with gravity and curve
+    const gravity = 9.8 * 0.02; // Gravity effect
+    const curveAmount = (Math.random() - 0.5) * 0.5; // Pitch curve
+    
+    const x = lerp(0, targetX, eased) + Math.sin(t * Math.PI) * curveAmount;
+    const baseY = 1.5 + (height * Math.sin(t * Math.PI)) - (gravity * t * t * 60);
+    const y = Math.max(0.3, baseY);
     const z = lerp(-18.4, targetZ, eased);
+    
     ball.position.set(x, y, z);
+    
+    // Rotate ball for realism
+    ball.rotation.x += 0.5;
+    ball.rotation.y += 0.3;
     
     // Check for swing timing (in bat/full modes)
     if ((gameMode === 'bat' || gameMode === 'full') && !gameState.waitingForSwing && elapsed > 300) {
